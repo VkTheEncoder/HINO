@@ -10,7 +10,7 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # 3) Build HINO
-WORKDIR /app/hino
+WORKDIR /app
 RUN cmake . && make
 
 # 4) Switch back, install Python deps
