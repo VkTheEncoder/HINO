@@ -1,7 +1,10 @@
-# 1) Start from slim Python
+# ┌─────────────────────────────────────────────────────────────────────────┐
+# │  telegram-hino-bot Dockerfile                                         │
+# └─────────────────────────────────────────────────────────────────────────┘
+
 FROM python:3.12-slim
 
-# 2) Install C++ toolchain + OpenCV/Tesseract headers
+# 1) Install C/C++ build tools + OpenCV & Tesseract headers + Python venv support
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       cmake g++ make \
@@ -9,21 +12,24 @@ RUN apt-get update && \
       ffmpeg python3-venv python3-distutils \
     && rm -rf /var/lib/apt/lists/*
 
-# 3) Build HINO
+# 2) Copy everything (your Python code + HINO C++ code)
 WORKDIR /app
-RUN cmake . && make
-
-# 4) Switch back, install Python deps
-WORKDIR /app
-COPY requirements.txt .
-RUN python3 -m venv /opt/venv && \
-    /opt/venv/bin/pip install --upgrade pip setuptools wheel && \
-    /opt/venv/bin/pip install -r requirements.txt
-
-ENV PATH="/opt/venv/bin:${PATH}"
-
-# 5) Copy the rest of your code (including hino/)
 COPY . .
 
-# 6) Run your bot
+# 3) Build HINO from the root CMakeLists.txt
+#    This will discover src/, externals/, tests/, etc., and produce
+#    the `HardsubIsNotOk` binary at /app/HardsubIsNotOk (or similar).
+RUN cmake . \
+ && make -j"$(nproc)"
+
+# 4) Create & populate a Python venv, install only the bot’s Python deps
+COPY requirements.txt .
+RUN python3 -m venv /opt/venv \
+ && /opt/venv/bin/pip install --upgrade pip setuptools wheel \
+ && /opt/venv/bin/pip install -r requirements.txt
+
+# 5) Ensure venv’s bin/ is on PATH
+ENV PATH="/opt/venv/bin:${PATH}"
+
+# 6) Launch the Telegram bot
 CMD ["python", "bot.py"]
