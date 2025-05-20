@@ -19,7 +19,7 @@ async def on_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 2) Invoke HINO
     srt = mp4 + ".srt"
     hino_bin = os.path.join(os.getcwd(), "build", "HardsubIsNotOk")
-    subprocess.run([hino_bin, "-i", mp4, "-o", srt], check=True)
+    subprocess.run([hino_bin, "-i", mp4_path, "-o", srt_path], check=True)
     logger.info(f"HINO wrote {srt}")
 
     # 3) Send SRT back
