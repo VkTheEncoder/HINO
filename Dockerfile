@@ -4,7 +4,7 @@
 
 FROM python:3.12-slim
 
-# 1) Install all the C/C++ build deps + FFmpeg/OpenCV/Tesseract dev headers + Python venv
+# 1) Install C/C++ toolchain + FFmpeg/OpenCV/Tesseract headers + Python venv
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       cmake g++ make pkg-config \
@@ -13,15 +13,15 @@ RUN apt-get update && \
       ffmpeg python3-venv python3-distutils \
     && rm -rf /var/lib/apt/lists/*
 
-# 2) Copy the entire repo (both your Python code and HINO's C++ code)
+# 2) Build **only** the HardsubIsNotOk CLI from the root CMakeLists.txt
 WORKDIR /app
 COPY . .
 
-# 3) Configure & build **only** the HardsubIsNotOk executable, skipping tests
+# Generate build files & compile the HardsubIsNotOk target (skips tests)
 RUN cmake . \
  && make HardsubIsNotOk
 
-# 4) Create a Python virtualenv & install the Telegram library
+# 3) Create & populate a Python venv, install your bot’s Python deps
 COPY requirements.txt .
 RUN python3 -m venv /opt/venv \
  && /opt/venv/bin/pip install --upgrade pip setuptools wheel \
@@ -29,5 +29,5 @@ RUN python3 -m venv /opt/venv \
 
 ENV PATH="/opt/venv/bin:${PATH}"
 
-# 5) Default command to run your bot
+# 4) Launch the bot
 CMD ["python", "bot.py"]
