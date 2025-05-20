@@ -4,7 +4,7 @@
 
 FROM python:3.12-slim
 
-# 1) Install C/C++ toolchain + FFmpeg/OpenCV/Tesseract headers + Python venv
+# 1) Install build tools + FFmpeg/OpenCV/Tesseract dev headers + venv support
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       cmake g++ make pkg-config \
@@ -13,21 +13,22 @@ RUN apt-get update && \
       ffmpeg python3-venv python3-distutils \
     && rm -rf /var/lib/apt/lists/*
 
-# 2) Build **only** the HardsubIsNotOk CLI from the root CMakeLists.txt
+# 2) Copy your entire repo (includes CMakeLists.txt, src/, externals/, HardsubIsNotOk/ folder, plus bot.py, etc.)
 WORKDIR /app
 COPY . .
 
-# Generate build files & compile the HardsubIsNotOk target (skips tests)
-RUN cmake . \
- && make HardsubIsNotOk
+# 3) Out-of-source build for just the CLI binary
+RUN mkdir -p build && cd build && \
+    cmake .. && \
+    make HardsubIsNotOk
 
-# 3) Create & populate a Python venv, install your bot’s Python deps
+# 4) Create & populate a Python venv; install only telegram-bot
 COPY requirements.txt .
-RUN python3 -m venv /opt/venv \
- && /opt/venv/bin/pip install --upgrade pip setuptools wheel \
- && /opt/venv/bin/pip install -r requirements.txt
+RUN python3 -m venv /opt/venv && \
+    /opt/venv/bin/pip install --upgrade pip setuptools wheel && \
+    /opt/venv/bin/pip install -r requirements.txt
 
 ENV PATH="/opt/venv/bin:${PATH}"
 
-# 4) Launch the bot
+# 5) Start the bot
 CMD ["python", "bot.py"]
